@@ -1,0 +1,240 @@
+# 📌 Projeto de Estudo - Segurança em DNS com RPZ e Network Protection
+
+## 📖 Contexto e Objetivos
+
+Este projeto tem como objetivo explorar práticas de segurança em infraestrutura de redes, com foco em:
+
+- Proteção DNS utilizando BIND (RPZ - Response Policy Zone)
+- Estratégias de bloqueio de domínios maliciosos
+- Integração com soluções de segurança (ex: Check Point Harmony)
+- Boas práticas operacionais em ambientes de ISP/DataCenter
+
+O estudo foi realizado com apoio do NotebookLM, utilizando fontes técnicas confiáveis e testes de engenharia de prompts para extração de conhecimento.
+
+---
+
+## 📚 Curadoria de Fontes
+
+As seguintes fontes foram utilizadas:
+
+1. 🔗 https://www.isc.org/rpz/  
+   (Documentação oficial do BIND RPZ)
+
+2. 🔗 https://datatracker.ietf.org/doc/html/rfc1035  
+   (RFC DNS)
+
+3. 🔗 https://www.sans.org/white-papers/dns-security/  
+   (Whitepaper SANS - Segurança DNS)
+
+4. 🔗 https://www.cloudflare.com/learning/dns/what-is-dns/  
+   (Fundamentos DNS)
+
+5. 🔗 https://support.checkpoint.com  
+   (Referência Check Point Harmony)
+
+---
+
+## 🧠 Engenharia de Prompts e "Cicatrizes"
+
+### 🔎 Prompt Inicial
+Explique como funciona o RPZ no BIND na prática.
+### ✅ Resultado
+
+#### 📌 Cenário
+
+Um provedor de internet (ISP) deseja bloquear o domínio:
+malware-site.com
+
+Motivo: domínio associado a phishing/malware.
+---
+
+#### ⚙️ Configuração no BIND
+##### 1. Editar `named.conf`
+
+```bash
+response-policy {
+    zone "rpz.local";
+};
+
+
+2. Zona RPZ (rpz.local)
+Arquivo:
+/etc/bind/db.rpz.local
+
+
+------
+$TTL 60
+@   IN  SOA localhost. root.localhost. (
+        2024061501 ; serial
+        1H         ; refresh
+        15M        ; retry
+        30D        ; expire
+        2H )       ; minimum
+
+    IN  NS  localhost.
+
+malware-site.com      CNAME   .
+*.malware-site.com    CNAME   .
+
+
+------
+### 🔎 Prompt Refinado
+
+Explique o funcionamento do RPZ no BIND com exemplos de configuração e casos reais de uso em ISP.
+✅ Explicação:
+CNAME . → força resposta NXDOMAIN
+*. → bloqueia subdomínios
+
+
+### 🔎 Prompt Avançado
+
+Simule um cenário de bloqueio de domínio malicioso usando RPZ, incluindo comandos Linux e impacto no cliente.
+
+✅ Resultado:
+- Fluxo completo de DNS
+- Arquivo de zona exemplo
+- Explicação de retorno NXDOMAIN
+
+ Fluxo da Requisição DNS
+Cliente → DNS ISP (BIND)
+        → RPZ consulta
+        → Match encontrado
+        → Resposta alterada (NXDOMAIN)
+        → Cliente recebe erro
+
+Validação
+Teste com dig:
+dig malware-site.com @<IP_DNS_ISP>
+✅ Resultado esperado:
+status: NXDOMAIN
+
+
+Teste com nslookup:
+nslookup malware-site.com <IP_DNS_ISP>M
+✅ Resultado:
+** server can't find malware-site.com: NXDOMAIN
+
+
+| Situação | Resultado |
+|----------|---------|
+| Acesso via navegador | Site não abre |
+| Malware ativo | Comunicação bloqueada |
+| Usuário final | Mensagem de erro DNS |
+
+---
+
+### ⚠️ Dificuldades Encontradas
+
+| Problema | Solução |
+|----------|--------|
+| Respostas muito teóricas | Tornar o prompt mais específico |
+| Falta de comandos | Pedir explicitamente exemplos CLI |
+| Contexto genérico | Inserir cenário real (ISP, datacenter, etc.) |
+
+---
+
+🛠️ Caso Real de Uso em ISP
+Uso típico do RPZ em provedores:
+✅ Bloqueio de:
+
+Phishing
+C&C (Command and Control)
+Domínios maliciosos conhecidos
+
+✅ Integrações comuns:
+
+Feed de threat intelligence
+Check Point Harmony
+Abuse.ch / listas automatizadas
+
+
+🔥 Troubleshooting
+🔎 Verificar se RPZ está ativo:
+
+rndc reload
+named-checkconf
+
+---
+
+🔎 Checar logs:
+
+tail -f /var/log/syslog | grep named
+``
+
+---
+
+🔎 Validar zona:
+named-checkzone rpz.local /etc/bind/db.rpz.local
+
+
+| Problema | Causa | Solução |
+|----------|------|--------|
+| Domínio não bloqueia | RPZ não carregado | `rndc reload` |
+| Resposta ainda resolve | Cache DNS | Limpar cache |
+| Erro na zona | Sintaxe inválida | `named-checkzone` |
+
+
+---
+---
+Insight Técnico
+O RPZ funciona como um "firewall de DNS", interceptando consultas antes da resolução completa, permitindo:
+
+Controle centralizado
+Resposta customizada
+Segurança em escala
+
+
+✅ Conclusão do Prompt
+Este nível de detalhamento só foi alcançado após:
+✔ Refinar o prompt para contexto ISP
+✔ Solicitar exemplos práticos
+✔ Incluir ferramentas reais (dig, nslookup, rndc)
+
+---
+---
+
+## 📘 Miniguia de Estudo
+
+### ✅ 1. Resumo Estruturado
+
+- DNS resolve nomes em IPs
+- RPZ permite bloquear/alterar respostas DNS
+- Muito usado para:
+  - Anti-malware
+  - Controle de acesso
+  - Proteção corporativa
+
+Fluxo básico:
+Cliente → DNS → RPZ → Resposta (bloqueada ou normal)
+
+---
+
+### ✅ 2. Glossário
+
+| Termo | Definição |
+|------|----------|
+| DNS | Sistema de resolução de nomes |
+| RPZ | Zona de política para controle de respostas DNS |
+| NXDOMAIN | Domínio inexistente |
+| BIND | Servidor DNS open-source |
+| Blackhole | Bloqueio de tráfego |
+
+---
+
+### ✅ 3. Prompts Reutilizáveis
+
+- "Explique [tecnologia] com exemplo prático"
+- "Simulação um troubleshooting de [problema] em ambiente ISP"
+- "Liste comandos úteis para diagnóstico em [equipamento]"
+- "Compare [tecnologia A] vs [tecnologia B]"
+
+---
+
+## 🚀 Conclusão
+
+Este projeto demonstra:
+
+- Capacidade de curadoria técnica
+- Uso avançado de IA (NotebookLM)
+- Aplicação prática em redes
+- Construção de documentação estruturada
